@@ -1,9 +1,86 @@
-import Image from "next/image";
+'use client'
+
+import { Button } from 'primereact/button';
+
+import { DataTable } from 'primereact/datatable';
+import { Column } from 'primereact/column';
+import { useEffect, useState } from "react";
+import { InputText } from "primereact/inputtext";
+import React from "react";
+
+function SseListener(props: { url: string, onEvent: (state: MessageEvent) => void }) {
+  useEffect(() => {
+    const evtSource = new window.EventSource(props.url);
+
+    evtSource.onmessage = event => {
+      props.onEvent(event);
+    }
+
+    return () => {
+      evtSource.close();
+    };
+  }, []);
+
+  return null;
+}
+
+type Event = {
+  code: string;
+  name: string;
+  category: string;
+  quantity: number;
+};
 
 export default function Home() {
+  const [events, setEvents] = useState<MessageEvent[]>([]);
+  const [url, setUrl] = useState('https://sse.dev/test');
+  const [shouldConnect, setShouldConnect] = useState(false);
+
+  function connect() {
+    setShouldConnect(true);
+  }
+
+  function disconnect() {
+    setShouldConnect(false);
+  }
+
+  const button = shouldConnect ?
+    <Button icon="pi pi-times-circle" className="p-button-danger" onClick={disconnect}
+    />
+    :
+    <Button icon="pi pi-check" className="p-button-success" onClick={connect}
+    />;
+
+  function onEvent(event: MessageEvent) {
+    setEvents(previous => [...previous, event]);
+  }
+
   return (
-    <main className="flex min-h-screen flex-col items-center justify-between p-24">
-      <div className="z-10 w-full max-w-5xl items-center justify-between font-mono text-sm lg:flex">
+
+    <main className="flex min-h-screen flex-col items-center p-24">
+
+      <div className="p-inputgroup max-w-80">
+        <InputText placeholder="SSE Endpoint"
+          value={url} onChange={(e) => setUrl(e.target.value)} />
+        {button}
+      </div>
+
+      <div className="card">
+        <DataTable value={events} tableStyle={{ minWidth: '50rem' }}>
+          <Column field="id" header="ID"></Column>
+          <Column field="type" header="Type"></Column>
+          <Column field="data" header="Data"></Column>
+          <Column field="timeStamp" header="Time"></Column>
+          <Column field="origin" header="Origin"></Column>
+        </DataTable>
+      </div>
+      {
+        shouldConnect ?
+          <SseListener key={url} url={url} onEvent={onEvent}></SseListener>
+          : <></>
+      }
+
+      {/* <div className="z-10 w-full max-w-5xl items-center justify-between font-mono text-sm lg:flex">
         <p className="fixed left-0 top-0 flex w-full justify-center border-b border-gray-300 bg-gradient-to-b from-zinc-200 pb-6 pt-8 backdrop-blur-2xl dark:border-neutral-800 dark:bg-zinc-800/30 dark:from-inherit lg:static lg:w-auto  lg:rounded-xl lg:border lg:bg-gray-200 lg:p-4 lg:dark:bg-zinc-800/30">
           Get started by editing&nbsp;
           <code className="font-mono font-bold">app/page.tsx</code>
@@ -107,7 +184,7 @@ export default function Home() {
             Instantly deploy your Next.js site to a shareable URL with Vercel.
           </p>
         </a>
-      </div>
+      </div> */}
     </main>
   );
 }
